@@ -1,14 +1,12 @@
 <!DOCTYPE html>
-
-<!DOCTYPE html>
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>OpenHorizon - Next-Gen Flight Simulator</title>
-    <!-- Tailwind CSS CDN -->
+    <!-- Tailwind CSS -->
     <script src="https://jsdelivr.net"></script>
-    <!-- Font Awesome Icons -->
+    <!-- Font Awesome İkon Kütüphanesi -->
     <link rel="stylesheet" href="https://cloudflare.com">
     <!-- Google Fonts (Inter) -->
     <link rel="preconnect" href="https://googleapis.com">
@@ -20,157 +18,86 @@
             font-family: 'Inter', sans-serif;
             overflow: hidden;
         }
-        /* Glassmorphism Effect */
+        /* Gelişmiş Glassmorphism */
         .glass-panel {
-            background: rgba(15, 23, 42, 0.45);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(10, 15, 30, 0.65);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.07);
         }
         .glass-button {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         }
         .glass-button:hover {
-            background: rgba(255, 255, 255, 0.15);
-            border-color: rgba(255, 255, 255, 0.25);
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(14, 165, 233, 0.4);
             transform: translateY(-2px);
         }
-        /* Pulse Animation for Fly Button */
-        @keyframes custom-pulse {
-            0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(14, 165, 233, 0.7); }
-            50% { transform: scale(1.03); box-shadow: 0 0 25px 10px rgba(14, 165, 233, 0.4); }
+        /* Uçuşa Başla Nabız Efekti */
+        @keyframes fly-pulse {
+            0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(14, 165, 233, 0.6); }
+            50% { transform: scale(1.03); box-shadow: 0 0 35px 15px rgba(14, 165, 233, 0.35); }
         }
         .animate-fly {
-            animation: custom-pulse 3s infinite;
+            animation: fly-pulse 3s infinite;
+        }
+        /* Arayüz Geçişleri */
+        .menu-fade-out {
+            opacity: 0;
+            transform: scale(1.03) translateY(-10px);
+            pointer-events: none;
+            transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        /* İnce Kaydırma Çubuğu Tasarımı */
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(14, 165, 233, 0.4);
         }
     </style>
 </head>
 <body class="bg-slate-950 text-slate-100 h-screen w-screen relative select-none">
 
-    <!-- ARKA PLAN: Canlı Uçuş Simülasyonu/Video Alanı -->
-    <div class="absolute inset-0 z-0">
-        <!-- Gerçek projede buraya Three.js / CesiumJS tuvali veya video elementi gelecektir -->
-        <div class="w-full h-full bg-gradient-to-tr from-slate-950 via-slate-900 to-sky-900 opacity-80"></div>
-        <!-- Yapay ufuk çizgisi ve grid efekti (Temsili) -->
-        <div class="absolute inset-0 opacity-10 bg-[linear-gradient(to_right,#0284c7_1px,transparent_1px),linear-gradient(to_bottom,#0284c7_1px,transparent_1px)] bg-[size:4rem_4rem]"></div>
-    </div>
+    <!-- DİNAMİK ARKA PLAN CANVAS (Uçuş/Uzay Matrisi Simülasyonu) -->
+    <canvas id="flightCanvas" class="absolute inset-0 z-0 pointer-events-none"></canvas>
+    
+    <!-- ARKA PLAN GRADIENT KATMANI -->
+    <div class="absolute inset-0 z-[1] bg-gradient-to-tr from-slate-950 via-slate-950/80 to-sky-950/30 mix-blend-multiply pointer-events-none"></div>
 
-    <!-- ÜST BAR: Logo ve Profil -->
-    <header class="absolute top-0 inset-x-0 h-20 z-10 flex items-center justify-between px-8 bg-gradient-to-b from-slate-950/80 to-transparent">
-        <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-xl bg-sky-500 flex items-center justify-center shadow-lg shadow-sky-500/30">
-                <i class="fa-solid fa-cloud-sun-plane text-xl text-white"></i>
-            </div>
-            <div>
-                <h1 class="text-xl font-bold tracking-wider text-white">OPEN<span class="text-sky-400">HORIZON</span></h1>
-                <p class="text-xs text-slate-400 font-medium tracking-widest uppercase">Web Flight Simulator</p>
-            </div>
-        </div>
-
-        <!-- Profil ve Sunucu Durumu -->
-        <div class="flex items-center gap-6">
-            <div class="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium">
-                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
-                EU-WEST SUB-01 [9ms]
-            </div>
-            <div class="flex items-center gap-3 glass-panel px-4 py-2 rounded-xl">
-                <div class="text-right">
-                    <p class="text-sm font-semibold">Capt. Ömer</p>
-                    <p class="text-xs text-sky-400">142.5 Uçuş Saati</p>
-                </div>
-                <div class="w-10 h-10 rounded-lg bg-slate-700 border border-slate-600 flex items-center justify-center overflow-hidden">
-                    <i class="fa-solid fa-user-pilot text-lg text-slate-300"></i>
-                </div>
-            </div>
-        </div>
-    </header>
-
-    <!-- ANA MENÜ İÇERİK ALANI -->
-    <main class="absolute inset-0 z-10 pt-24 pb-16 px-8 flex gap-6 pointer-events-none">
+    <!-- ANA ARAYÜZ (MAIN UI) -->
+    <div id="mainUI" class="absolute inset-0 z-10 transition-all duration-700">
         
-        <!-- SOL PANEL: Kurulum Menüsü -->
-        <section class="w-96 h-full glass-panel rounded-2xl p-6 flex flex-col justify-between pointer-events-auto shadow-2xl">
-            <div class="space-y-6 overflow-y-auto pr-1">
-                <h2 class="text-xs font-bold uppercase tracking-widest text-slate-400 border-b border-slate-800 pb-2">Uçuş Konfigürasyonu</h2>
-                
-                <!-- Uçak Seçimi -->
-                <div class="space-y-2">
-                    <label class="text-xs font-medium text-slate-400 flex justify-between"><span>HAVA ARACI</span> <span class="text-sky-400">Değiştir</span></label>
-                    <div class="glass-button p-3 rounded-xl flex items-center gap-4 cursor-pointer">
-                        <div class="w-12 h-12 bg-slate-800/80 rounded-lg flex items-center justify-center text-sky-400 text-xl border border-slate-700">
-                            <i class="fa-solid fa-plane-departure"></i>
-                        </div>
-                        <div>
-                            <p class="text-sm font-semibold text-white">Boeing 737-800</p>
-                            <p class="text-xs text-slate-400">Türk Hava Yolları Livery</p>
-                        </div>
-                    </div>
+        <!-- ÜST HEADER PANELİ -->
+        <header class="absolute top-0 inset-x-0 h-24 flex items-center justify-between px-8 bg-gradient-to-b from-slate-950/90 to-transparent">
+            <div class="flex items-center gap-3.5">
+                <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-sky-400 to-indigo-600 flex items-center justify-center shadow-lg shadow-sky-500/20">
+                    <i class="fa-solid fa-cloud-sun-plane text-2xl text-white"></i>
                 </div>
-
-                <!-- Konum Seçimi -->
-                <div class="space-y-2">
-                    <label class="text-xs font-medium text-slate-400 flex justify-between"><span>BAŞLANGIÇ NOKTASI</span> <span class="text-sky-400">Harita</span></label>
-                    <div class="glass-button p-3 rounded-xl flex items-center gap-4 cursor-pointer">
-                        <div class="w-12 h-12 bg-slate-800/80 rounded-lg flex items-center justify-center text-sky-400 text-xl border border-slate-700">
-                            <i class="fa-solid fa-location-dot"></i>
-                        </div>
-                        <div>
-                            <p class="text-sm font-semibold text-white">LTFM - İstanbul Havalimanı</p>
-                            <p class="text-xs text-slate-400">Pist 35R (Kalkışa Hazır)</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Hava Durumu ve Zaman -->
-                <div class="space-y-2">
-                    <label class="text-xs font-medium text-slate-400">ORTAM & ÇEVRE</label>
-                    <div class="grid grid-cols-2 gap-2">
-                        <div class="glass-button p-3 rounded-xl text-center cursor-pointer">
-                            <i class="fa-solid fa-cloud-sun text-lg text-amber-400 mb-1"></i>
-                            <p class="text-xs font-medium">Canlı METAR</p>
-                        </div>
-                        <div class="glass-button p-3 rounded-xl text-center cursor-pointer border border-sky-500/30 bg-sky-500/5">
-                            <i class="fa-solid fa-moon text-lg text-indigo-400 mb-1"></i>
-                            <p class="text-xs font-medium">Gece Uçuşu</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Kontrol Cihazı -->
-                <div class="space-y-2">
-                    <label class="text-xs font-medium text-slate-400">KONTROL CİHAZI</label>
-                    <div class="glass-button px-3 py-2.5 rounded-xl flex items-center justify-between text-xs cursor-pointer">
-                        <span class="flex items-center gap-2"><i class="fa-solid fa-gamepad text-slate-400"></i> Airbus TCA Joystick</span>
-                        <i class="fa-solid fa-chevron-right text-slate-500 text-[10px]"></i>
-                    </div>
+                <div>
+                    <h1 class="text-2xl font-black tracking-wider text-white">OPEN<span class="text-sky-400">HORIZON</span></h1>
+                    <p class="text-[10px] text-sky-400/80 font-bold tracking-[0.2em] uppercase">Next-Gen Flight Simulator</p>
                 </div>
             </div>
-
-            <!-- Alt Bilgi / Sürüm -->
-            <div class="pt-4 border-t border-slate-800/60 flex justify-between text-[11px] text-slate-500 font-medium">
-                <span>Alpha Sürümü v0.4.2</span>
-                <span class="text-sky-500/70 hover:underline cursor-pointer">Yenilikler</span>
-            </div>
-        </section>
-
-        <!-- MERKEZ / SAĞ BÖLÜM: Ana Aksiyon Butonu ve Çok Oyunculu Oda -->
-        <section class="flex-1 h-full flex flex-col justify-between items-end">
             
-            <!-- Sağ Üst: Multiplayer & Sohbet Paneli -->
-            <div class="w-80 glass-panel rounded-2xl p-4 flex flex-col gap-3 pointer-events-auto shadow-xl">
-                <div class="flex justify-between items-center border-b border-slate-800 pb-2">
-                    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400"><i class="fa-solid fa-users mr-1.5 text-sky-400"></i> Aktif Trafik (12)</h3>
-                    <span class="text-[11px] bg-sky-500/20 text-sky-300 px-2 py-0.5 rounded font-semibold">GLOBAL</span>
+            <div class="flex items-center gap-5">
+                <div class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                    TR-MAIN SERVER [14ms]
                 </div>
-                <div class="space-y-2 max-h-40 overflow-y-auto text-xs">
-                    <div class="flex justify-between items-center text-slate-300"><span class="font-medium">THY1903</span><span class="text-slate-500 text-[10px]">B738 - 12k ft</span></div>
-                    <div class="flex justify-between items-center text-slate-300"><span class="font-medium">N420FS</span><span class="text-slate-500 text-[10px]">C172 - Ayrılıyor</span></div>
-                    <div class="flex justify-between items-center text-slate-300"><span class="font-medium">TURK01</span><span class="text-slate-500 text-[10px]">F16 - Savaş Modu</span></div>
-                </div>
-            </div>
-
-            <!-- Sağ Alt: BÜYÜK UÇUŞ BUTONU -->
-            <div class="pointer-events-auto">
-</html>
+                <div class="flex items-center gap-3.5 glass-panel px-4 py-2 rounded-xl">
+                    <div class="text-right">
+                        <p class="text-sm font-bold tracking-wide">Capt. Kaan</
+Hava Trafiği142 AKTİFTHY321A321 • 8,500ftPGT44XB738 • YaklaşmaSOLOTURKF16 • 22,000ftUÇUŞA BAŞLA Sistem Ayarları ATC Ses Kontrolü Hangardan Uçak SeçBoeing 737-800Yolcu Taşımacılığı JetiJetCessna 172 SkyhawkTek Motorlu Genel HavacılıkHafifF-16 Fighting FalconSüpersonik Taktik Savaş UçağıAskeri Başlangıç Noktası SeçLTFM - İstanbul HavalimanıAvrupa Ana Terminal Girişi • Rüzgar SakinKJFK - John F. Kennedy Int.Kuzey Amerika Hub Noktası • Yoğun TrafikEGLL - Londra HeathrowBulutlu / Alçak Görüş Şartları (CAT III)OPENHORIZON BAŞLATILIYORDünya haritası ve havacılık mesh verileri doğrulanıyor.../* --- 1. ARKA PLAN CANVAS ANIMASYONU (Uçuş Matrisi) --- */const canvas = document.getElementById('flightCanvas');const ctx = canvas.getContext('2d');let stars = [];function resizeCanvas() {canvas.width = window.innerWidth;canvas.height = window.innerHeight;}window.addEventListener('resize', resizeCanvas);resizeCanvas();// Yıldız/Partikül Oluşturmafor(let i=0; i<80; i++) {stars.push({x: Math.random() * canvas.width,y: Math.random() * canvas.height,radius: Math.random() * 1.5,speed: Math.random() * 0.4 + 0.1});}function drawBackground() {ctx.clearRect(0, 0, canvas.width, canvas.height);ctx.fillStyle = "rgba(14, 165, 233, 0.4)";stars.forEach(star => {ctx.beginPath();ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);ctx.fill();// Sola/Aşağı doğru simüle akış (Uçuş hissi)star.x -= star.speed;if(star.x < 0) {star.x = canvas.width;star.y = Math.random() * canvas.height;}});requestAnimationFrame(drawBackground);}drawBackground();/* --- 2. MODAL & KONTROL MANTIĞI --- */function openModal(modalId) {const modal = document.getElementById(modalId);modal.classList.remove('hidden');modal.classList.add('flex');setTimeout(() => {modal.classList.remove('opacity-0');modal.querySelector('.glass-panel').classList.remove('scale-95');}, 10);}function closeModal(modalId) {const modal = document.getElementById(modalId);modal.classList.add('opacity-0');modal.querySelector('.glass-panel').classList.add('scale-95');setTimeout(() => {modal.classList.add('hidden');modal.classList.remove('flex');}, 300);}function selectAircraft(name, desc, iconClass) {document.getElementById('selectedAircraftName').innerText = name;document.getElementById('selectedAircraftDesc').innerText = desc;const iconEl = document.getElementById('selectedAircraftIcon');iconEl.className = fa-solid ${iconClass};closeModal('aircraftModal');}function selectLocation(name, desc) {document.getElementById('selectedLocationName').innerText = name;document.getElementById('selectedLocationDesc').innerText = desc;closeModal('locationModal');}function selectEnvironment(btn, type) {document.querySelectorAll('.env-btn').forEach(b => {b.classList.remove('border-sky-500/40', 'bg-sky-500/5');});btn.classList.add('border-sky-500/40', 'bg-sky-500/5');}/* --- 3. SIMÜLASYON BAŞLATMA (Yükleme Ekranı Akışı) --- */function startSimulation() {document.getElementById('mainUI').classList.add('menu-fade-out');const loadingScreen = document.getElementById('loadingScreen');const statusText = document.getElementById('loadingStatus');setTimeout(() => {loadingScreen.classList.remove('pointer-events-none');loadingScreen.classList.add('opacity-100');// Temsili yükleme adımları aşamalarısetTimeout(() => { statusText.innerText = "Hava sahası kuralları ve ATC odaları eşitleniyor..."; }, 1500);setTimeout(() => { statusText.innerText = "Kokpit sistemleri çalıştırılıyor (Cold & Dark bypass)..."; }, 3200);setTimeout(() => { statusText.innerText = "Keyifli uçuşlar kaptan!"; statusText.classList.add('text-sky-400'); }, 4800);}, 500);}
+<FollowUp>
+Menünün sol alt tarafındaki sistem ayarlarına basıldığında grafik kalitesini değiştirebileceğiniz **yeni bir "Ayarlar Modalı" (Settings UI)** eklememi ister misiniz?
+</FollowUp>
